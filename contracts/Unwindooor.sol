@@ -10,6 +10,9 @@ import "./interfaces/IUniV2.sol";
 contract Unwindooor is Auth {
 
     error SlippageProtection();
+    error TransferFailed();
+
+    bytes4 private constant TRANSFER_SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     constructor(address _owner, address _user) Auth(_owner, _user) {}
 
@@ -31,15 +34,19 @@ contract Unwindooor is Auth {
     ) private returns (uint256 amountOut) {
 
         pair.transfer(address(pair), amount);
-        (uint256 amount0, uint256 amount1) = pair.burn(address(pair));
+        (uint256 amount0, uint256 amount1) = pair.burn(address(this));
         (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
 
         if (keepToken0) {
-            amountOut = amount0 + _getAmountOut(amount1, uint256(reserve1), uint256(reserve0));
+            _safeTransfer(pair.token1(), address(pair), amount1);
+            amountOut = _getAmountOut(amount1, uint256(reserve1), uint256(reserve0));
             pair.swap(amountOut, 0, address(this), "");
+            amountOut += amount0;
         } else {
-            amountOut = amount1 + _getAmountOut(amount0, uint256(reserve0), uint256(reserve1));
+            _safeTransfer(pair.token0(), address(pair), amount0);
+            amountOut = _getAmountOut(amount0, uint256(reserve0), uint256(reserve1));
             pair.swap(0, amountOut, address(this), "");
+            amountOut += amount1;
         }
     }
 
@@ -52,6 +59,11 @@ contract Unwindooor is Auth {
         uint256 numerator = amountInWithFee * reserveOut;
         uint256 denominator = reserveIn * 1000 + amountInWithFee;
         return numerator / denominator;
+    }
+
+    function _safeTransfer(address token, address to, uint value) internal {
+        (bool success, bytes memory data) = token.call(abi.encodeWithSelector(TRANSFER_SELECTOR, to, value));
+        if (!success || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
     }
 
 /* 
