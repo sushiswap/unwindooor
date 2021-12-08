@@ -39,7 +39,7 @@ abstract contract Auth {
 
     function setTrusted(address _user, bool _isTrusted) external onlyOwner {
         isTrusted[_user] = _isTrusted;
-        emit SetTrusted(_user, true);
+        emit SetTrusted(_user, _isTrusted);
     }
 
 }
