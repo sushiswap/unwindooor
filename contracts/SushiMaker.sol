@@ -7,6 +7,8 @@ import "./WethMaker.sol";
 /// @notice Contract for selling weth to sushi.
 contract SushiMaker is WethMaker {
 
+    event Serve(uint256 amount);
+
     address public immutable sushi;
     address public immutable xSushi;
 
@@ -22,12 +24,15 @@ contract SushiMaker is WethMaker {
         xSushi = _xSushi;
     }
 
-    function buySushi(uint256 amountIn, uint256 minOutAmount) external onlyTrusted {
-        if (_swap(weth, sushi, amountIn, xSushi) < minOutAmount) revert SlippageProtection();
+    function buySushi(uint256 amountIn, uint256 minOutAmount) external onlyTrusted returns (uint256 amountOut) {
+        amountOut = _swap(weth, sushi, amountIn, xSushi);
+        if (amountOut < minOutAmount) revert SlippageProtection();
+        emit Serve(amountOut);
     }
 
-    function sweep() external {
-        IERC20(sushi).transfer(xSushi, IERC20(sushi).balanceOf(address(this)));
+    function sweep(uint256 amount) external onlyTrusted {
+        IERC20(sushi).transfer(xSushi, amount);
+        emit Serve(amount);
     }
 
 }
