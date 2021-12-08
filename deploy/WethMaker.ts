@@ -1,12 +1,13 @@
 // import {  } from "hardhat-deploy";
 import { DeployFunction } from "hardhat-deploy/types";
 import { FACTORY_ADDRESS, WETH9_ADDRESS } from "@sushiswap/core-sdk";
+import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 const deployFunction: DeployFunction = async ({
   deployments,
   getNamedAccounts,
   getChainId
-}: any) => {
+}: HardhatRuntimeEnvironment) => {
 
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
@@ -26,7 +27,7 @@ const deployFunction: DeployFunction = async ({
   console.log(`Weth maker deployed to ${address}`);
 };
 
-deployFunction.skip = ({ getChainId }: any) =>
+deployFunction.skip = ({ getChainId }: HardhatRuntimeEnvironment) =>
   new Promise((resolve) => {
     getChainId().then(chainId => {
       return resolve(chainId === "1") // skip if on mainnet

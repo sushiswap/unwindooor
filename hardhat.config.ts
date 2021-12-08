@@ -1,5 +1,6 @@
 import "dotenv/config";
 import "@nomiclabs/hardhat-etherscan";
+import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-solhint";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-deploy";
@@ -182,6 +183,9 @@ const config: HardhatUserConfig = {
       verbose: true,
     },
   },
+  mocha: {
+    timeout: 40000
+  }
 };
 
 // You need to export an object to set up your config
