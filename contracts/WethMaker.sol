@@ -8,6 +8,8 @@ import "./interfaces/IUniV2Factory.sol";
 /// @notice Contract for selling received tokens into weth.
 contract WethMaker is Unwindooor {
 
+    event SetBridge(address indexed token, address bridge);
+
     address public immutable weth;
     IUniV2Factory public immutable factory;
 
@@ -18,22 +20,21 @@ contract WethMaker is Unwindooor {
         weth = _weth;
     }
 
-    function setAllowedBridge(address token, address bridge) external onlyOwner {
-        bridges[token] = bridge;
+    function setAllowedBridge(address _token, address _bridge) external onlyOwner {
+        bridges[_token] = _bridge;
+        emit SetBridge(_token, _bridge);
     }
 
-    /// @dev we buy Weth or a bridge token (which will be sold for eth the next time).
+    /// @dev we buy Weth or a bridge token (which will be sold for eth on the next call).
     function buyWeth(
         address[] calldata tokens,
         uint256[] calldata amountsIn,
-        bool[] calldata useBridge,
         uint256[] calldata minimumOuts
     ) external onlyTrusted {
         for (uint256 i = 0; i < tokens.length; i++) {
 
             address tokenIn = tokens[i];
-            address outToken = useBridge[i] ? bridges[tokenIn] : weth;  
-
+            address outToken = bridges[tokenIn] == address(0) ? weth : bridges[tokenIn];
             if (_swap(tokenIn, outToken, amountsIn[i], address(this)) < minimumOuts[i]) revert SlippageProtection();
             
         }
@@ -46,21 +47,20 @@ contract WethMaker is Unwindooor {
         address to
     ) internal returns (uint256 outAmount) {
         
-        IUniV2 pair = IUniV2(factory.pairFor(tokenIn, tokenOut));
-        
+        IUniV2 pair = IUniV2(factory.getPair(tokenIn, tokenOut));
         IERC20(tokenIn).transfer(address(pair), amountIn);
 
         (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
 
         if (tokenIn < tokenOut) {
-    
-            outAmount = _getAmountOut(amountIn, reserve0, reserve1);
-            pair.swap(outAmount, 0, to, "");
-
-        } else {
 
             outAmount = _getAmountOut(amountIn, reserve0, reserve1);
             pair.swap(0, outAmount, to, "");
+
+        } else {
+
+            outAmount = _getAmountOut(amountIn, reserve1, reserve0);
+            pair.swap(outAmount, 0, to, "");
 
         }
 
