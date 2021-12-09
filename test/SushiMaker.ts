@@ -18,6 +18,7 @@ describe("SushiMaker", async function () {
   let bob: Signer;
   let _bob: string;
   let sushiMaker: SushiMaker;
+  let wethMaker: WethMaker;
   let sushi: MockERC20;
   let xSushi: MockERC20;
   let weth: MockERC20;
@@ -46,6 +47,7 @@ describe("SushiMaker", async function () {
     _bob = await bob.getAddress();
 
     const sushiMakerFactory = (await ethers.getContractFactory("SushiMaker")) as SushiMaker__factory;
+    const wethMakerFactory = (await ethers.getContractFactory("WethMaker")) as WethMaker__factory;
     const erc20Factory = (await ethers.getContractFactory("MockERC20")) as MockERC20__factory;
 
     const factoryAddress = FACTORY_ADDRESS[1];
@@ -55,6 +57,7 @@ describe("SushiMaker", async function () {
     const masterChefAddress = MASTERCHEF_ADDRESS[1];
 
     sushiMaker = (await sushiMakerFactory.deploy(_owner, _trustee, factoryAddress, wethAddress, sushiAddress, xSushiAddress)) as SushiMaker;
+    wethMaker = (await wethMakerFactory.deploy(_owner, _trustee, factoryAddress, wethAddress)) as SushiMaker;
 
     [sushi, xSushi, weth, dai, ohm, wbtc, usdc] = await Promise.all([
       await erc20Factory.attach(sushiAddress),
@@ -96,7 +99,7 @@ describe("SushiMaker", async function () {
   })
 
   it("Should restrict actions", async () => {
-    await expect(sushiMaker.connect(trustee).doAction(ohm.address, "0x")).to.be.revertedWith(customError("OnlyOwner"));
+    await expect(wethMaker.connect(trustee).doAction(ohm.address, 0, "0x")).to.be.revertedWith(customError("OnlyOwner"));
     await expect(sushiMaker.connect(bob).buyWeth([], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).unwindPairs([], [], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).sweep(0)).to.be.revertedWith(customError("OnlyTrusted"));
@@ -189,8 +192,45 @@ describe("SushiMaker", async function () {
     const wethBalance = await weth.balanceOf(sushiMaker.address);
     expect(wethBalance.sub(oldWethBalance).toString()).to.be.eq(expectedWeth0.add(expectedWeth1).toString(), "didn't get the weth");
 
-  })
-})
+  });
+
+  it("Should serve the bar", async () => {
+    const wethBalance = await weth.balanceOf(sushiMaker.address);
+    const barBalance = await sushi.balanceOf(xSushi.address);
+    const sushiWethReserves = await sushi_eth.getReserves();
+    const expectedSushiOut = getAmountOut(wethBalance.div(10), sushiWethReserves.reserve1, sushiWethReserves.reserve0);
+    await sushiMaker.buySushi(wethBalance.div(10), expectedSushiOut);
+    const newBarBalance = await sushi.balanceOf(xSushi.address);
+    expect(newBarBalance.sub(barBalance).toString()).to.be.eq(expectedSushiOut.toString(), "didn't buy exact amount of sushi");
+
+    const lpBalance = await sushi_eth.balanceOf(sushiMaker.address);
+    const sushiBalance = await sushi.balanceOf(sushiMaker.address);
+    await sushiMaker.unwindPairs([sushi_eth.address], [lpBalance], [0], [true]);
+    const newSushiBalance = await sushi.balanceOf(sushiMaker.address);
+    expect(sushiBalance.lt(newSushiBalance)).to.be.true;
+    await sushiMaker.sweep(newSushiBalance);
+    expect((await sushi.balanceOf(sushiMaker.address)).toString()).to.be.eq("0", "didn't sweep");
+    expect((await sushi.balanceOf(xSushi.address)).toString()).to.be.eq(newBarBalance.add(newSushiBalance).toString(), "didn't sweep");
+  });
+
+  it("should take care of native", async () => {
+    const amount = "0x1000000000000000000";
+    await network.provider.send("hardhat_setBalance", [wethMaker.address, amount]);
+    await network.provider.send("hardhat_setBalance", [sushiMaker.address, amount]);
+
+    let oldWethBalance = await weth.balanceOf(wethMaker.address);
+    await wethMaker.doAction(weth.address, amount, "0x");
+    let newWethBalance = await weth.balanceOf(wethMaker.address);
+    expect(newWethBalance.toString()).to.be.eq(oldWethBalance.add(amount).toString(), "didn't wrap eth");
+
+    oldWethBalance = await weth.balanceOf(sushiMaker.address);
+    const ethBalance = await ethers.provider.getBalance(sushiMaker.address);
+    await sushiMaker.wrapEth();
+    newWethBalance = await weth.balanceOf(sushiMaker.address);
+    expect(newWethBalance.toString()).to.be.eq(oldWethBalance.add(ethBalance).toString(), "didn't wrap all eth");
+  });
+
+});
 
 function getAmountOut(amountIn: BigNumber, reserveIn: BigNumber, reserveOut: BigNumber): BigNumber {
   const amountInWithFee = amountIn.mul(997);

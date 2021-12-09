@@ -5,7 +5,7 @@ pragma solidity >=0.8.0;
 import "./Unwindooor.sol";
 import "./interfaces/IUniV2Factory.sol";
 
-/// @notice Contract for selling received tokens into weth.
+/// @notice Contract for selling received tokens into weth. Deploy on secondary networks.
 contract WethMaker is Unwindooor {
 
     event SetBridge(address indexed token, address bridge);
@@ -66,8 +66,9 @@ contract WethMaker is Unwindooor {
 
     }
 
-    function doAction(address to, bytes memory data) payable onlyOwner external {
-        (bool success, ) = to.call{value: msg.value}(data);
+    // Alow owner to withdraw the funds and bridge them to mainnet.
+    function doAction(address _to, uint256 _value, bytes memory _data) onlyOwner virtual external {
+        (bool success, ) = _to.call{value: _value}(_data);
         require(success);
     }
 

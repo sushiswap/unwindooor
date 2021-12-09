@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 
 import "./WethMaker.sol";
 
-/// @notice Contract for selling weth to sushi.
+/// @notice Contract for selling weth to sushi. Deploy on mainnet.
 contract SushiMaker is WethMaker {
 
     event Serve(address indexed from, uint256 amount);
@@ -33,6 +33,16 @@ contract SushiMaker is WethMaker {
     function sweep(uint256 amount) external onlyTrusted {
         IERC20(sushi).transfer(xSushi, amount);
         emit Serve(msg.sender, amount);
+    }
+
+    // Don't allow arbitrary execution on mainnet.
+    function doAction(address, uint256, bytes memory) external override {
+        revert();
+    }
+
+    // In case we receive any unwrapped ethereum we can call this.
+    function wrapEth() external {
+        weth.call{value: address(this).balance}("");
     }
 
 }
