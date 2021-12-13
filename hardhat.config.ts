@@ -97,6 +97,14 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       tags: ["staging"],
     },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts,
+      chainId: 1,
+      live: true,
+      saveDeployments: true,
+      tags: ["production"],
+    },
     moonbase: {
       url: "https://rpc.testnet.moonbeam.network",
       accounts,

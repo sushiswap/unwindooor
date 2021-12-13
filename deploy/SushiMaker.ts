@@ -24,7 +24,7 @@ const deployFunction: DeployFunction = async ({
 
   const { address } = await deploy("SushiMaker", {
     from: deployer,
-    args: [owner, user, factory, weth, sushi, xSushi],
+    args: [owner, user, factory, weth, sushi, xSushi]
   });
 
   console.log(`Sushi maker deployed to ${address}`);
