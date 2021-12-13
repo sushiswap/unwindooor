@@ -100,6 +100,7 @@ describe("SushiMaker", async function () {
 
   it("Should restrict actions", async () => {
     await expect(wethMaker.connect(trustee).withdraw(ohm.address, ohm.address, "1")).to.be.revertedWith(customError("OnlyOwner"));
+    await expect(sushiMaker.connect(owner).withdraw(ohm.address, ohm.address, "1")).to.be.reverted;
     await expect(sushiMaker.connect(bob).buyWeth([], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).unwindPairs([], [], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).sweep(0)).to.be.revertedWith(customError("OnlyTrusted"));

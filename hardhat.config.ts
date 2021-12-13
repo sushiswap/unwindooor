@@ -1,3 +1,4 @@
+import "./cli";
 import "dotenv/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-ethers";

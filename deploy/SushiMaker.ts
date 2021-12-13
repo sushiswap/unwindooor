@@ -34,7 +34,7 @@ const deployFunction: DeployFunction = async ({
 deployFunction.skip = ({ getChainId }: HardhatRuntimeEnvironment) =>
   new Promise((resolve) => {
     getChainId().then(chainId => {
-      return resolve(chainId !== "1") // only run on mainnet
+      return resolve(chainId !== "1" && chainId !== "42") // only run on mainnet & kovan
     })
   });
 
