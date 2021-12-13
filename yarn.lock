@@ -10531,7 +10531,7 @@ unset-value@^1.0.0:
 
 "unwindooor-sdk@git+https://github.com/gasperbr/unwindooor-sdk.git":
   version "1.0.0"
-  resolved "git+https://github.com/gasperbr/unwindooor-sdk.git#64ef1b1b407ee47af90ea30e511570e8f4a2c934"
+  resolved "git+https://github.com/gasperbr/unwindooor-sdk.git#5d1095e6d842a992f5a077615521d3a368e684dd"
   dependencies:
     "@sushiswap/core-sdk" "^1.0.0-canary.21"
 
