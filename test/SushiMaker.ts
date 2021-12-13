@@ -57,7 +57,7 @@ describe("SushiMaker", async function () {
     const masterChefAddress = MASTERCHEF_ADDRESS[1];
 
     sushiMaker = (await sushiMakerFactory.deploy(_owner, _trustee, factoryAddress, wethAddress, sushiAddress, xSushiAddress)) as SushiMaker;
-    wethMaker = (await wethMakerFactory.deploy(_owner, _trustee, factoryAddress, wethAddress)) as SushiMaker;
+    wethMaker = (await wethMakerFactory.deploy(_owner, _trustee, factoryAddress, wethAddress)) as WethMaker;
 
     [sushi, xSushi, weth, dai, ohm, wbtc, usdc] = await Promise.all([
       await erc20Factory.attach(sushiAddress),
@@ -99,7 +99,7 @@ describe("SushiMaker", async function () {
   })
 
   it("Should restrict actions", async () => {
-    await expect(wethMaker.connect(trustee).doAction(ohm.address, 0, "0x")).to.be.revertedWith(customError("OnlyOwner"));
+    await expect(wethMaker.connect(trustee).withdraw(ohm.address, ohm.address, "1")).to.be.revertedWith(customError("OnlyOwner"));
     await expect(sushiMaker.connect(bob).buyWeth([], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).unwindPairs([], [], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).sweep(0)).to.be.revertedWith(customError("OnlyTrusted"));
@@ -113,7 +113,7 @@ describe("SushiMaker", async function () {
     expect(await sushiMaker.connect(owner).setTrusted(_owner, true));
   })
 
-  it("Should unwind lp tokens for eth", async () => {
+  it("Should unwind lp tokens for weth", async () => {
 
     sushiMaker = sushiMaker.connect(owner);
 
@@ -152,11 +152,23 @@ describe("SushiMaker", async function () {
     const ohmExpected = getAmountOut(daiBurnAmount, daiReserve, ohmReserve).add(ohmBurnAmount);
     const ohmBalance = await ohm.balanceOf(sushiMaker.address);
     expect(ohmBalance.toString()).to.be.eq(ohmExpected.toString(), "didn't swap correctly");
-  })
+  });
+
+  it("should burn lp tokens", async () => {
+    const reserves = await ohm_dai.getReserves();
+    const totalSupply = await ohm_dai.totalSupply();
+    const amount = (await ohm_dai.balanceOf(sushiMaker.address)).div(10);
+    const amount0 = reserves.reserve0.mul(amount).div(totalSupply);
+    const amount1 = reserves.reserve1.mul(amount).div(totalSupply);
+    await expect(sushiMaker.burnPairs([ohm_dai.address], [amount], [amount0.add(1)], [amount1])).to.be.revertedWith(customError("SlippageProtection"));
+    await expect(sushiMaker.burnPairs([ohm_dai.address], [amount], [amount0], [amount1.add(1)])).to.be.revertedWith(customError("SlippageProtection"));
+    await sushiMaker.burnPairs([ohm_dai.address], [amount], [amount0.mul(99).div(100)], [amount1.mul(99).div(100)]);
+  });
 
   it("Should buy weth (through bridge and directly)", async () => {
     await sushiMaker.setAllowedBridge(ohm.address, dai.address);
     const initialOhmBalance = await ohm.balanceOf(sushiMaker.address);
+    const initialDaiBalance = await dai.balanceOf(sushiMaker.address);
     const poolReserves = await ohm_dai.getReserves();
     const expectedDai = getAmountOut(
       initialOhmBalance,
@@ -173,11 +185,11 @@ describe("SushiMaker", async function () {
     sushiMaker.buyWeth(
       [ohm.address],
       [initialOhmBalance],
-      [0],
+      [expectedDai],
     );
     const daiBalance = await dai.balanceOf(sushiMaker.address);
     const ohmBalance = await ohm.balanceOf(sushiMaker.address);
-    expect(daiBalance.toString()).to.be.eq(expectedDai.toString(), "didn't buy dai");
+    expect(daiBalance.toString()).to.be.eq(initialDaiBalance.add(expectedDai).toString(), "didn't buy dai");
     expect(ohmBalance.toString()).to.be.eq("0", "didn't sell all ohm");
 
     const oldWethBalance = await weth.balanceOf(sushiMaker.address);
@@ -214,14 +226,20 @@ describe("SushiMaker", async function () {
   });
 
   it("should take care of native", async () => {
-    const amount = "0x1000000000000000000";
+    const _amount = "1000000000000000000";
+    const amount = "0x" + _amount;
     await network.provider.send("hardhat_setBalance", [wethMaker.address, amount]);
     await network.provider.send("hardhat_setBalance", [sushiMaker.address, amount]);
 
     let oldWethBalance = await weth.balanceOf(wethMaker.address);
-    await wethMaker.doAction(weth.address, amount, "0x");
+    await wethMaker.withdraw(ethers.constants.AddressZero, weth.address, amount);
     let newWethBalance = await weth.balanceOf(wethMaker.address);
     expect(newWethBalance.toString()).to.be.eq(oldWethBalance.add(amount).toString(), "didn't wrap eth");
+
+    oldWethBalance = await weth.balanceOf(_owner);
+    await wethMaker.withdraw(weth.address, _owner, amount);
+    newWethBalance = await weth.balanceOf(_owner);
+    expect(newWethBalance.toString()).to.be.eq(oldWethBalance.add(amount), "didn't withdraw weth");
 
     oldWethBalance = await weth.balanceOf(sushiMaker.address);
     const ethBalance = await ethers.provider.getBalance(sushiMaker.address);

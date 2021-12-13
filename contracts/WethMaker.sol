@@ -25,7 +25,7 @@ contract WethMaker is Unwindooor {
         emit SetBridge(_token, _bridge);
     }
 
-    /// @dev we buy Weth or a bridge token (which will be sold for eth on the next call).
+    // Exchange token for weth or its bridge token (which gets converted into weth in subsequent transactions).
     function buyWeth(
         address[] calldata tokens,
         uint256[] calldata amountsIn,
@@ -66,10 +66,14 @@ contract WethMaker is Unwindooor {
 
     }
 
-    // Alow owner to withdraw the funds and bridge them to mainnet.
-    function doAction(address _to, uint256 _value, bytes memory _data) onlyOwner virtual external {
-        (bool success, ) = _to.call{value: _value}(_data);
-        require(success);
+    // Allow the owner to withdraw the funds and bridge them to mainnet.
+    function withdraw(address _token, address _to, uint256 _value) onlyOwner virtual external {
+        if (_token != address(0)) {
+            _safeTransfer(_token, _to, _value);
+        } else {
+            (bool success, ) = _to.call{value: _value}("");
+            require(success);
+        }
     }
 
 }

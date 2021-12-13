@@ -9,7 +9,7 @@ abstract contract Auth {
 
     address public owner;
 
-    mapping(address => bool) isTrusted;
+    mapping(address => bool) public isTrusted;
 
     error OnlyOwner();
     error OnlyTrusted();

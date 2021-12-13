@@ -7,7 +7,7 @@ import "./WethMaker.sol";
 /// @notice Contract for selling weth to sushi. Deploy on mainnet.
 contract SushiMaker is WethMaker {
 
-    event Serve(address indexed from, uint256 amount);
+    event Serve(uint256 amount);
 
     address public immutable sushi;
     address public immutable xSushi;
@@ -27,16 +27,16 @@ contract SushiMaker is WethMaker {
     function buySushi(uint256 amountIn, uint256 minOutAmount) external onlyTrusted returns (uint256 amountOut) {
         amountOut = _swap(weth, sushi, amountIn, xSushi);
         if (amountOut < minOutAmount) revert SlippageProtection();
-        emit Serve(msg.sender, amountOut);
+        emit Serve(amountOut);
     }
 
     function sweep(uint256 amount) external onlyTrusted {
         IERC20(sushi).transfer(xSushi, amount);
-        emit Serve(msg.sender, amount);
+        emit Serve(amount);
     }
 
-    // Don't allow arbitrary execution on mainnet.
-    function doAction(address, uint256, bytes memory) external override {
+    // Don't allow direct withdrawals on mainnet.
+    function withdraw(address, address, uint256) external pure override {
         revert();
     }
 
