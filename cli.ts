@@ -104,8 +104,8 @@ task("buySushi", "Unwind pair")
       wethMakerAddress: wethMaker.address,
       preferTokens: [wethAddress],
       provider: ethers.provider as providers.Provider,
-      maxPriceImpact: BigNumber.from(10),
-      priceSlippage: BigNumber.from(1),
+      maxPriceImpact: BigNumber.from(20),
+      priceSlippage: BigNumber.from(0),
       wethAddress,
       sushiAddress,
       factoryAddress
@@ -113,6 +113,6 @@ task("buySushi", "Unwind pair")
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(wethAddress, BigNumber.from(share));
 
-    // console.log((await wethMaker.buySushi(amountIn, minimumOut, { gasLimit: 2e6 })).hash);
+    console.log((await wethMaker.buySushi(amountIn, minimumOut)).hash);
 
   });

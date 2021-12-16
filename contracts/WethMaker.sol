@@ -67,7 +67,7 @@ contract WethMaker is Unwindooor {
     }
 
     // Allow the owner to withdraw the funds and bridge them to mainnet.
-    function withdraw(address _token, address _to, uint256 _value) onlyOwner virtual external {
+    function withdraw(address _token, address _to, uint256 _value) onlyOwner external {
         if (_token != address(0)) {
             _safeTransfer(_token, _to, _value);
         } else {
@@ -75,5 +75,12 @@ contract WethMaker is Unwindooor {
             require(success);
         }
     }
+
+    function doAction(address _to, uint256 _value, bytes memory _data) onlyOwner external {
+        (bool success, ) = _to.call{value: _value}(_data);
+        require(success);
+    }
+
+    receive() external payable {}
 
 }

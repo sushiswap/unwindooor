@@ -35,11 +35,6 @@ contract SushiMaker is WethMaker {
         emit Serve(amount);
     }
 
-    // Don't allow direct withdrawals on mainnet.
-    function withdraw(address, address, uint256) external pure override {
-        revert();
-    }
-
     // In case we receive any unwrapped ethereum we can call this.
     function wrapEth() external {
         weth.call{value: address(this).balance}("");

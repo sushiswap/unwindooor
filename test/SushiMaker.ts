@@ -229,6 +229,9 @@ describe("SushiMaker", async function () {
   it("should take care of native", async () => {
     const _amount = "1000000000000000000";
     const amount = "0x" + _amount;
+    await network.provider.send("hardhat_setBalance", [_owner, amount]);
+    await owner.sendTransaction({ from: _owner, to: wethMaker.address, value: "0x1" });
+    await owner.sendTransaction({ from: _owner, to: sushiMaker.address, value: "0x1" });
     await network.provider.send("hardhat_setBalance", [wethMaker.address, amount]);
     await network.provider.send("hardhat_setBalance", [sushiMaker.address, amount]);
 
