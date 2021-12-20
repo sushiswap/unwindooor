@@ -3,7 +3,6 @@
 pragma solidity >=0.8.0;
 
 import "./Unwindooor.sol";
-import "./interfaces/IUniV2Factory.sol";
 
 /// @notice Contract for selling received tokens into weth. Deploy on secondary networks.
 contract WethMaker is Unwindooor {
@@ -11,18 +10,21 @@ contract WethMaker is Unwindooor {
     event SetBridge(address indexed token, address bridge);
 
     address public immutable weth;
-    IUniV2Factory public immutable factory;
 
     mapping(address => address) public bridges;
 
-    constructor(address _owner, address _user, address _factory, address _weth) Unwindooor(_owner, _user) {
-        factory = IUniV2Factory(_factory);
+    constructor(
+        address owner,
+        address user,
+        address factory,
+        address _weth
+    ) Unwindooor(owner, user, factory) {
         weth = _weth;
     }
 
-    function setAllowedBridge(address _token, address _bridge) external onlyOwner {
-        bridges[_token] = _bridge;
-        emit SetBridge(_token, _bridge);
+    function setBridge(address token, address bridge) external onlyOwner {
+        bridges[token] = bridge;
+        emit SetBridge(token, bridge);
     }
 
     // Exchange token for weth or its bridge token (which gets converted into weth in subsequent transactions).
@@ -46,7 +48,7 @@ contract WethMaker is Unwindooor {
         uint256 amountIn,
         address to
     ) internal returns (uint256 outAmount) {
-        
+
         IUniV2 pair = IUniV2(factory.getPair(tokenIn, tokenOut));
         IERC20(tokenIn).transfer(address(pair), amountIn);
 
@@ -67,17 +69,17 @@ contract WethMaker is Unwindooor {
     }
 
     // Allow the owner to withdraw the funds and bridge them to mainnet.
-    function withdraw(address _token, address _to, uint256 _value) onlyOwner external {
-        if (_token != address(0)) {
-            _safeTransfer(_token, _to, _value);
+    function withdraw(address token, address to, uint256 _value) onlyOwner external {
+        if (token != address(0)) {
+            _safeTransfer(token, to, _value);
         } else {
-            (bool success, ) = _to.call{value: _value}("");
+            (bool success, ) = to.call{value: _value}("");
             require(success);
         }
     }
 
-    function doAction(address _to, uint256 _value, bytes memory _data) onlyOwner external {
-        (bool success, ) = _to.call{value: _value}(_data);
+    function doAction(address to, uint256 _value, bytes memory data) onlyOwner external {
+        (bool success, ) = to.call{value: _value}(data);
         require(success);
     }
 

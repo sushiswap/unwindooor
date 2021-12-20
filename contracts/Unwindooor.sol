@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 
 import "./Auth.sol";
 import "./interfaces/IUniV2.sol";
+import "./interfaces/IUniV2Factory.sol";
 
 /// @notice Contract for withdrawing LP positions.
 /// @dev Calling unwindPairs() withdraws the LP position into one of the two tokens
@@ -14,16 +15,31 @@ contract Unwindooor is Auth {
 
     bytes4 private constant TRANSFER_SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
-    constructor(address _owner, address _user) Auth(_owner, _user) {}
+    IUniV2Factory public immutable factory;
 
+    constructor(
+        address owner,
+        address user,
+        address factoryAddress
+    ) Auth(owner, user) {
+        factory = IUniV2Factory(factoryAddress);
+    }
+
+    // We remove liquidity and sell tokensB[i] for tokensA[i].
     function unwindPairs(
-        IUniV2[] calldata lpTokens,
+        address[] calldata tokensA,
+        address[] calldata tokensB,
         uint256[] calldata amounts,
-        uint256[] calldata minimumOuts,
-        bool[] calldata keepToken0
+        uint256[] calldata minimumOuts
     ) external onlyTrusted {
-        for (uint256 i = 0; i < lpTokens.length; i++) {
-            if (_unwindPair(lpTokens[i], amounts[i], keepToken0[i]) < minimumOuts[i]) revert SlippageProtection();
+        for (uint256 i = 0; i < tokensA.length; i++) {
+            
+            address tokenA = tokensA[i];
+            address tokenB = tokensB[i];
+            bool keepToken0 = tokenA < tokenB;
+            address pair = _pairFor(tokenA, tokenB);
+
+            if (_unwindPair(IUniV2(pair), amounts[i], keepToken0, tokenB) < minimumOuts[i]) revert SlippageProtection();
         }
     }
 
@@ -31,7 +47,8 @@ contract Unwindooor is Auth {
     function _unwindPair(
         IUniV2 pair,
         uint256 amount,
-        bool keepToken0
+        bool keepToken0,
+        address tokenToSell
     ) private returns (uint256 amountOut) {
 
         pair.transfer(address(pair), amount);
@@ -39,19 +56,19 @@ contract Unwindooor is Auth {
         (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
 
         if (keepToken0) {
-            _safeTransfer(pair.token1(), address(pair), amount1);
+            _safeTransfer(tokenToSell, address(pair), amount1);
             amountOut = _getAmountOut(amount1, uint256(reserve1), uint256(reserve0));
             pair.swap(amountOut, 0, address(this), "");
             amountOut += amount0;
         } else {
-            _safeTransfer(pair.token0(), address(pair), amount0);
+            _safeTransfer(tokenToSell, address(pair), amount0);
             amountOut = _getAmountOut(amount0, uint256(reserve0), uint256(reserve1));
             pair.swap(0, amountOut, address(this), "");
             amountOut += amount1;
         }
     }
 
-    // Incase we don't want to sell one of the tokens for the other.
+    // In case we don't want to sell one of the tokens for the other.
     function burnPairs(
         IUniV2[] calldata lpTokens,
         uint256[] calldata amounts,
@@ -80,6 +97,16 @@ contract Unwindooor is Auth {
     function _safeTransfer(address token, address to, uint value) internal {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(TRANSFER_SELECTOR, to, value));
         if (!success || (data.length != 0 && !abi.decode(data, (bool)))) revert TransferFailed();
+    }
+
+    function _pairFor(address tokenA, address tokenB) internal view returns (address pair) {
+        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        pair = address(uint160(uint256(keccak256(abi.encodePacked(
+            hex'ff',
+            factory,
+            keccak256(abi.encodePacked(token0, token1)),
+            hex'e18a34eb0e04b04f7a0ac29a6e80748dca96319b42c54d679cb821dca90c6303' // init code hash
+        )))));
     }
 
 }

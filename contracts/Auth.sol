@@ -9,7 +9,7 @@ abstract contract Auth {
 
     address public owner;
 
-    mapping(address => bool) public isTrusted;
+    mapping(address => bool) public trusted;
 
     error OnlyOwner();
     error OnlyTrusted();
@@ -20,26 +20,26 @@ abstract contract Auth {
     }
 
     modifier onlyTrusted() {
-        if (!isTrusted[msg.sender]) revert OnlyTrusted();
+        if (!trusted[msg.sender]) revert OnlyTrusted();
         _;
     }
 
-    constructor(address _owner, address _trusted) {
-        owner = _owner;
-        isTrusted[_trusted] = true;
+    constructor(address newOwner, address trustedUser) {
+        owner = newOwner;
+        trusted[trustedUser] = true;
 
         emit SetOwner(owner);
-        emit SetTrusted(_trusted, true);
+        emit SetTrusted(trustedUser, true);
     }
 
-    function setOwner(address _owner) external onlyOwner {
-        owner = _owner;
-        emit SetOwner(owner);
+    function setOwner(address newOwner) external onlyOwner {
+        owner = newOwner;
+        emit SetOwner(newOwner);
     }
 
-    function setTrusted(address _user, bool _isTrusted) external onlyOwner {
-        isTrusted[_user] = _isTrusted;
-        emit SetTrusted(_user, _isTrusted);
+    function setTrusted(address user, bool isTrusted) external onlyOwner {
+        trusted[user] = isTrusted;
+        emit SetTrusted(user, isTrusted);
     }
 
 }

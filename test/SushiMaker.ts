@@ -39,9 +39,9 @@ describe("SushiMaker", async function () {
   before(async () => {
 
     const signers = await ethers.getNamedSigners();
-    owner = signers.deployer;
-    trustee = signers.alice;
-    bob = signers.bob;
+    owner = signers.deployer as any as Signer;
+    trustee = signers.alice as any as Signer;
+    bob = signers.bob as any as Signer;
     _owner = await owner.getAddress();
     _trustee = await trustee.getAddress();
     _bob = await bob.getAddress();
@@ -69,7 +69,7 @@ describe("SushiMaker", async function () {
       await erc20Factory.attach("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")]);
 
     await network.provider.request({ method: "hardhat_impersonateAccount", params: [masterChefAddress], });
-    const mcSigner = await ethers.getSigner(masterChefAddress);
+    const mcSigner = await ethers.getSigner(masterChefAddress) as any;
     await network.provider.send("hardhat_setBalance", [masterChefAddress, "0x1000000000000000000"]);
 
     usdc_eth = (await erc20Factory.attach("0x397FF1542f962076d0BFE58eA045FfA2d347ACa0")).connect(mcSigner);
@@ -105,8 +105,8 @@ describe("SushiMaker", async function () {
     await expect(sushiMaker.connect(bob).unwindPairs([], [], [], [])).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(bob).sweep(0)).to.be.revertedWith(customError("OnlyTrusted"));
     await expect(sushiMaker.connect(owner).buySushi(0, 0)).to.be.revertedWith(customError("OnlyTrusted"));
-    await expect(sushiMaker.connect(bob).setAllowedBridge(ohm.address, dai.address)).to.be.revertedWith(customError("OnlyOwner"));
-    await expect(sushiMaker.connect(trustee).setAllowedBridge(ohm.address, dai.address)).to.be.revertedWith(customError("OnlyOwner"));
+    await expect(sushiMaker.connect(bob).setBridge(ohm.address, dai.address)).to.be.revertedWith(customError("OnlyOwner"));
+    await expect(sushiMaker.connect(trustee).setBridge(ohm.address, dai.address)).to.be.revertedWith(customError("OnlyOwner"));
     await expect(sushiMaker.connect(trustee).buySushi(0, 0)).to.be.revertedWith("UniswapV2: INSUFFICIENT_OUTPUT_AMOUNT"); // means sender is authorised
     expect(await sushiMaker.connect(owner).setTrusted(_trustee, false));
     await expect(sushiMaker.connect(trustee).buySushi(0, 0)).to.be.revertedWith(customError("OnlyTrusted"));
@@ -119,18 +119,20 @@ describe("SushiMaker", async function () {
     sushiMaker = sushiMaker.connect(owner);
 
     await (expect(sushiMaker.unwindPairs(
-      [usdc_eth.address],
+      [usdc.address],
+      [weth.address],
       [usdc_eth_balance.div(2)],
-      ["0xfffffffffffffffffffff"],
-      [true])).to.be.revertedWith(customError("SlippageProtection")));
+      ["0xfffffffffffffffffffff"]
+    )).to.be.revertedWith(customError("SlippageProtection")));
 
     const reservesStart = await usdc_eth.getReserves();
 
     await sushiMaker.unwindPairs(
-      [usdc_eth.address, usdc_eth.address,],
+      [weth.address, usdc.address,],
+      [usdc.address, weth.address,],
       [usdc_eth_balance.div(2), usdc_eth_balance.div(2)],
       [0, 0],
-      [false, true]);
+    );
 
     const reservesEnd = await usdc_eth.getReserves();
     const reserve0diff = reservesStart.reserve0.sub(reservesEnd.reserve0);
@@ -141,10 +143,11 @@ describe("SushiMaker", async function () {
 
     const ohmDaiReserves = await ohm_dai.getReserves();
     const unwindTx = await sushiMaker.unwindPairs(
-      [ohm_dai.address],
+      [ohm.address],
+      [dai.address],
       [ohm_dai_balance.div(2)],
       [0],
-      [true]);
+    );
 
     const burnLog = (await unwindTx.wait()).logs.find(log => log.topics[0] === "0xdccd412f0b1252819cb1fd330b93224ca42612892bb3f4f789976e6d81936496")
     const [ohmBurnAmount, daiBurnAmount] = utils.defaultAbiCoder.decode(["uint256", "uint256"], burnLog.data);
@@ -167,7 +170,7 @@ describe("SushiMaker", async function () {
   });
 
   it("Should buy weth (through bridge and directly)", async () => {
-    await sushiMaker.setAllowedBridge(ohm.address, dai.address);
+    await sushiMaker.setBridge(ohm.address, dai.address);
     const initialOhmBalance = await ohm.balanceOf(sushiMaker.address);
     const initialDaiBalance = await dai.balanceOf(sushiMaker.address);
     const poolReserves = await ohm_dai.getReserves();
@@ -183,7 +186,7 @@ describe("SushiMaker", async function () {
       [expectedDai.add(1)]
     )).to.be.revertedWith(customError("SlippageProtection"));
 
-    sushiMaker.buyWeth(
+    await sushiMaker.buyWeth(
       [ohm.address],
       [initialOhmBalance],
       [expectedDai],
@@ -218,7 +221,7 @@ describe("SushiMaker", async function () {
 
     const lpBalance = await sushi_eth.balanceOf(sushiMaker.address);
     const sushiBalance = await sushi.balanceOf(sushiMaker.address);
-    await sushiMaker.unwindPairs([sushi_eth.address], [lpBalance], [0], [true]);
+    await sushiMaker.unwindPairs([sushi.address], [weth.address], [lpBalance], [0]);
     const newSushiBalance = await sushi.balanceOf(sushiMaker.address);
     expect(sushiBalance.lt(newSushiBalance)).to.be.true;
     await sushiMaker.sweep(newSushiBalance);

@@ -13,13 +13,13 @@ contract SushiMaker is WethMaker {
     address public immutable xSushi;
 
     constructor(
-        address _owner,
-        address _user,
-        address _factory,
-        address _weth,
+        address owner,
+        address user,
+        address factory,
+        address weth,
         address _sushi,
         address _xSushi
-    ) WethMaker(_owner, _user, _factory, _weth) {
+    ) WethMaker(owner, user, factory, weth) {
         sushi = _sushi;
         xSushi = _xSushi;
     }
