@@ -113,13 +113,29 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       tags: ["staging"],
     },
-    arbitrum: {
-      url: "https://kovan3.arbitrum.io/rpc",
+    moonriver: {
+      url: "https://rpc.moonriver.moonbeam.network",
       accounts,
-      chainId: 79377087078960,
+      chainId: 1285,
       live: true,
       saveDeployments: true,
-      tags: ["staging"],
+      tags: ["production"],
+    },
+    arbitrum: {
+      url: "https://arb1.arbitrum.io/rpc",
+      accounts,
+      chainId: 42161,
+      live: true,
+      saveDeployments: true,
+      tags: ["production"],
+    },
+    avalanche: {
+      url: "https://api.avax.network/ext/bc/C/rpc",
+      accounts,
+      chainId: 43114,
+      live: true,
+      saveDeployments: true,
+      tags: ["production"],
     },
     fantom: {
       url: "https://rpcapi.fantom.network",

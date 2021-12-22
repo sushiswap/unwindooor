@@ -1,4 +1,4 @@
-import { BigNumber, ethers, providers, Signer } from "ethers";
+import { BigNumber, providers } from "ethers";
 import { task, types } from "hardhat/config";
 import { WethMaker } from "./typechain/WethMaker";
 import { SushiMaker } from "./typechain/SushiMaker";
@@ -39,7 +39,7 @@ task("unwindPair", "Unwind pair")
     const { amount, minimumOut, keepToken0 } = await wethMakerSdk.unwindPair(pairAddress, BigNumber.from(share));
     console.log(amount.toString());
 
-    console.log((await wethMaker.unwindPairs([pairAddress], [amount], [minimumOut], [keepToken0], { gasLimit: 1e7 })).hash);
+    // console.log((await wethMaker.unwindPairs([pairAddress], [amount], [minimumOut], [keepToken0], { gasLimit: 1e7 })).hash);
 
   });
 
@@ -60,8 +60,8 @@ task("sellToken", "Unwind pair")
     const chainId = parseInt(await getChainId());
 
     const signer = (new ethers.Wallet(process.env.TRUSTEE_PK as string, ethers.provider as providers.Provider));
-
-    const wethMaker = (await ethers.getContract(maker)).connect(signer as any) as WethMaker;
+    const wethMaker = (await ((await ethers.getContractFactory("WethMaker")).attach("0x86484112ec86e5C977dd9bAd457E66b61F7b963a"))).connect(signer as any) as WethMaker;
+    // const wethMaker = (await ethers.getContract(maker)).connect(signer as any) as WethMaker;
 
     const wethAddress = WETH9_ADDRESS[chainId];
     const sushiAddress = SUSHI_ADDRESS[chainId];
@@ -79,7 +79,6 @@ task("sellToken", "Unwind pair")
     })
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(token, BigNumber.from(share));
-
     console.log((await wethMaker.buyWeth([token], [amountIn], [minimumOut], { gasLimit: 1e7 })).hash);
 
   });

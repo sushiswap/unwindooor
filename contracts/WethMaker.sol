@@ -49,8 +49,8 @@ contract WethMaker is Unwindooor {
         address to
     ) internal returns (uint256 outAmount) {
 
-        IUniV2 pair = IUniV2(factory.getPair(tokenIn, tokenOut));
-        IERC20(tokenIn).transfer(address(pair), amountIn);
+        IUniV2 pair = IUniV2(_pairFor(tokenIn, tokenOut));
+        _safeTransfer(tokenIn, address(pair), amountIn);
 
         (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
 

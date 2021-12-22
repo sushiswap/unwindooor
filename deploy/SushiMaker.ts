@@ -16,7 +16,7 @@ const deployFunction: DeployFunction = async ({
   const chainId = parseInt(await getChainId());
 
   const owner = utils.getAddress(process.env.OWNER as string);
-  const user = utils.getAddress(process.env.TRUSTEE as string);
+  const user = utils.getAddress(process.env.TRUSTEE0 as string);
   const factory = FACTORY_ADDRESS[chainId];
   const weth = WETH9_ADDRESS[chainId];
   const sushi = SUSHI_ADDRESS[chainId];
