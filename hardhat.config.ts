@@ -137,6 +137,20 @@ const config: HardhatUserConfig = {
       saveDeployments: true,
       tags: ["production"],
     },
+    harmony: {
+      url: "https://api.s0.t.hmny.io",
+      accounts,
+      chainId: 1666600000,
+      live: true,
+      saveDeployments: true,
+    },
+    celo: {
+      url: "https://forno.celo.org",
+      accounts,
+      chainId: 42220,
+      live: true,
+      saveDeployments: true,
+    },
     fantom: {
       url: "https://rpcapi.fantom.network",
       accounts,

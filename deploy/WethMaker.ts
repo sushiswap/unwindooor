@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { DeployFunction } from "hardhat-deploy/types";
-import { FACTORY_ADDRESS, WETH9_ADDRESS } from "@sushiswap/core-sdk";
+import { ChainId, FACTORY_ADDRESS, WETH9_ADDRESS } from "@sushiswap/core-sdk";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { utils } from "ethers";
 import { WethMaker } from "../typechain";
@@ -22,7 +22,8 @@ const deployFunction: DeployFunction = async ({
   const user0 = utils.getAddress(process.env.TRUSTEE0 as string);
   const user1 = utils.getAddress(process.env.TRUSTEE1 as string);
   const factory = FACTORY_ADDRESS[chainId];
-  const weth = WETH9_ADDRESS[chainId];
+  const weth = chainId == ChainId.CELO ? "0x122013fd7dF1C6F636a5bb8f03108E876548b455" : WETH9_ADDRESS[chainId];
+  // const weth = chainId == ChainId.AVALANCHE ? "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB" : WETH9_ADDRESS[chainId];
 
   const { address } = await deploy("WethMaker", {
     from: deployer,
