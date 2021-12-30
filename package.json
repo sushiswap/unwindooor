@@ -91,6 +91,7 @@
   "dependencies": {
     "@rari-capital/solmate": "^5.0.2",
     "@sushiswap/core-sdk": "^1.0.0-canary.21",
-    "unwindooor-sdk": "git+https://github.com/gasperbr/unwindooor-sdk.git"
+    "axios": "^0.24.0",
+    "unwindooor-sdk": "https://github.com/gasperbr/unwindooor-sdk"
   }
 }

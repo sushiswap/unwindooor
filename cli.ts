@@ -3,7 +3,7 @@ import { task, types } from "hardhat/config";
 import { WethMaker } from "./typechain/WethMaker";
 import { SushiMaker } from "./typechain/SushiMaker";
 import { WethMaker as WethMakerSdk } from "unwindooor-sdk";
-import { FACTORY_ADDRESS, SUSHI_ADDRESS, WETH9_ADDRESS } from "@sushiswap/core-sdk";
+import { CurrencyAmount, FACTORY_ADDRESS, Pair, SUSHI_ADDRESS, Token, WETH9_ADDRESS } from "@sushiswap/core-sdk";
 
 // run `npx hardhat unwindPair --network matic --pair-address 0x9803c7ae526049210a1725f7487af26fe2c24614 --share 25`
 // to unwind 25% of BCT-KLIMA lp token
@@ -36,8 +36,8 @@ task("unwindPair", "Unwind pair")
       sushiAddress,
       factoryAddress
     })
-    const { amount, minimumOut, keepToken0 } = await wethMakerSdk.unwindPair(pairAddress, BigNumber.from(share));
-    console.log(amount.toString());
+
+    const { amount, minimumOut, tokenA, tokenB } = await wethMakerSdk.unwindPair(pairAddress, BigNumber.from(share));
 
     // console.log((await wethMaker.unwindPairs([pairAddress], [amount], [minimumOut], [keepToken0], { gasLimit: 1e7 })).hash);
 
@@ -53,15 +53,14 @@ task("sellToken", "Unwind pair")
   .addParam("token", "Token")
   .addParam("share", "Share", 100, types.int)
   .addParam("maker", "Maker", "WethMaker", types.string)
-  .setAction(async function ({ token, share, maker }, { ethers, getChainId }) {
+  .addOptionalParam("gasPrice", "Gas price")
+  .setAction(async function ({ token, share, maker, gasPrice }, { ethers, getChainId }) {
 
     if (share > 100 || share < 1) throw Error("Share should be between 1 and 100");
 
     const chainId = parseInt(await getChainId());
-
     const signer = (new ethers.Wallet(process.env.TRUSTEE_PK as string, ethers.provider as providers.Provider));
-    const wethMaker = (await ((await ethers.getContractFactory("WethMaker")).attach("0x86484112ec86e5C977dd9bAd457E66b61F7b963a"))).connect(signer as any) as WethMaker;
-    // const wethMaker = (await ethers.getContract(maker)).connect(signer as any) as WethMaker;
+    const wethMaker = (await ethers.getContract(maker)).connect(signer as any) as WethMaker;
 
     const wethAddress = WETH9_ADDRESS[chainId];
     const sushiAddress = SUSHI_ADDRESS[chainId];
@@ -71,7 +70,7 @@ task("sellToken", "Unwind pair")
       wethMakerAddress: wethMaker.address,
       preferTokens: [wethAddress],
       provider: ethers.provider as providers.Provider,
-      maxPriceImpact: BigNumber.from(10),
+      maxPriceImpact: BigNumber.from(7),
       priceSlippage: BigNumber.from(1),
       wethAddress,
       sushiAddress,
@@ -79,7 +78,7 @@ task("sellToken", "Unwind pair")
     })
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(token, BigNumber.from(share));
-    console.log((await wethMaker.buyWeth([token], [amountIn], [minimumOut], { gasLimit: 1e7 })).hash);
+    console.log((await wethMaker.buyWeth([token], [amountIn], [minimumOut], { gasLimit: 1e7, gasPrice })).hash);
 
   });
 
@@ -103,12 +102,12 @@ task("buySushi", "Unwind pair")
       wethMakerAddress: wethMaker.address,
       preferTokens: [wethAddress],
       provider: ethers.provider as providers.Provider,
-      maxPriceImpact: BigNumber.from(20),
+      maxPriceImpact: BigNumber.from(5),
       priceSlippage: BigNumber.from(0),
       wethAddress,
       sushiAddress,
       factoryAddress
-    })
+    });
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(wethAddress, BigNumber.from(share));
 
