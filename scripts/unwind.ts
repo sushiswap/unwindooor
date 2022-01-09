@@ -20,7 +20,7 @@ export const unwindPairs = async function ({ gasPrice, nonce }: any, { ethers, g
 
   const chainId = parseInt(await getChainId()) as ChainId;
   const signer = (new ethers.Wallet(process.env.TRUSTEE_PK as string, ethers.provider as providers.Provider)) as any;
-  const wethMaker = (await ethers.getContract("WethMaker")).connect(signer) as WethMaker;
+  const wethMaker = (await ethers.getContract(chainId == ChainId.ETHEREUM ? "SushiMaker" : "WethMaker")).connect(signer) as WethMaker;
 
   const wethMakerSdk = new WethMakerSdk({
     wethMakerAddress: wethMaker.address,
@@ -54,7 +54,7 @@ export const unwindPairs = async function ({ gasPrice, nonce }: any, { ethers, g
 
   }));
 
-  console.log((await wethMaker.unwindPairs(tokensA, tokensB, amounts, minimumOuts, { nonce, gasLimit: 1e7, gasPrice })).hash);
+  console.log((await wethMaker.unwindPairs(tokensA, tokensB, amounts, minimumOuts, { nonce, gasPrice })).hash);
 
 }
 

@@ -12,5 +12,9 @@ export const Pairs = {
     "0x941eb28e750c441aef465a89e43ddfec2561830b", // ICE-WETH
     "0x6ff62bfb8c12109e8000935a6de54dad83a4f39f", // WETH-DAI
     "0x2e7d6490526c7d7e2fdea5c6ec4b0d1b9f8b25b7", // WMATIC-RAIDER
+  ],
+  [ChainId.ETHEREUM]: [
+    "0x055475920a8c93cffb64d039a8205f7acc7722d3", // OHM_DAI
+    "0x06da0fd433c1a5d7a4faa01111c044910a184553", // WETH_USDT
   ]
 } as { [chainId in ChainId]: string[] }

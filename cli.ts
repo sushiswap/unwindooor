@@ -78,13 +78,15 @@ task("sellToken", "Unwind pair")
     })
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(token, BigNumber.from(share));
-    console.log((await wethMaker.buyWeth([token], [amountIn], [minimumOut], { gasLimit: 1e7, gasPrice })).hash);
+    console.log((await wethMaker.buyWeth([token], [amountIn], [minimumOut], { gasPrice })).hash);
 
   });
 
 task("buySushi", "Unwind pair")
   .addParam("share", "Share", 100, types.int)
-  .setAction(async function ({ share }, { ethers, getChainId }) {
+  .addOptionalParam("nonce")
+  .addOptionalParam("maxFeePerGas")
+  .setAction(async function ({ share, nonce, maxFeePerGas }, { ethers, getChainId }) {
 
     if (share > 100 || share < 1) throw Error("Share should be between 1 and 100");
 
@@ -102,8 +104,8 @@ task("buySushi", "Unwind pair")
       wethMakerAddress: wethMaker.address,
       preferTokens: [wethAddress],
       provider: ethers.provider as providers.Provider,
-      maxPriceImpact: BigNumber.from(5),
-      priceSlippage: BigNumber.from(0),
+      maxPriceImpact: BigNumber.from(6),
+      priceSlippage: BigNumber.from(1),
       wethAddress,
       sushiAddress,
       factoryAddress
@@ -111,6 +113,6 @@ task("buySushi", "Unwind pair")
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(wethAddress, BigNumber.from(share));
 
-    console.log((await wethMaker.buySushi(amountIn, minimumOut)).hash);
+    console.log((await wethMaker.buySushi(amountIn, minimumOut, { nonce, maxFeePerGas, gasLimit: 110000 })).hash);
 
   });
