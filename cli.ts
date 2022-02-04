@@ -113,6 +113,6 @@ task("buySushi", "Unwind pair")
 
     const { amountIn, minimumOut } = await wethMakerSdk.sellToken(wethAddress, BigNumber.from(share));
 
-    console.log((await wethMaker.buySushi(amountIn, minimumOut, { nonce, maxFeePerGas, gasLimit: 110000 })).hash);
+    console.log((await wethMaker.buySushi(amountIn, minimumOut, { nonce, gasPrice: (await ethers.provider.getGasPrice()).mul(12).div(10) })).hash);
 
   });

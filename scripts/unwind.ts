@@ -5,7 +5,7 @@ import { ChainId, FACTORY_ADDRESS, SUSHI_ADDRESS, WETH9_ADDRESS } from "@sushisw
 import { preferTokens } from "./preferTokens";
 import { Pairs } from "./pairs";
 
-export const unwindPairs = async function ({ gasPrice, nonce }: any, { ethers, getChainId }: any) {
+export const unwindPairs = async function ({ gasPrice, nonce, gasLimit }: any, { ethers, getChainId }: any) {
 
   const _getUnwindPairData = async (pairAddress: string, share = 100): Promise<{
     amount: BigNumber, minimumOut: BigNumber, tokenA: string, tokenB: string, share: number
@@ -54,11 +54,11 @@ export const unwindPairs = async function ({ gasPrice, nonce }: any, { ethers, g
 
   }));
 
-  console.log((await wethMaker.unwindPairs(tokensA, tokensB, amounts, minimumOuts, { nonce, gasPrice })).hash);
+  console.log((await wethMaker.unwindPairs(tokensA, tokensB, amounts, minimumOuts, { nonce, gasPrice, gasLimit })).hash);
 
 }
 
-export const buyWeth = async function ({ gasPrice, nonce }: any, { ethers, getChainId }: any) {
+export const buyWeth = async function ({ gasPrice, gasLimit, nonce, maker }: any, { ethers, getChainId }: any) {
 
   const _getbuyWethData = async (tokenAddress: string, part = 1): Promise<{
     amountIn: BigNumber, minimumOut: BigNumber, part: number
@@ -73,7 +73,7 @@ export const buyWeth = async function ({ gasPrice, nonce }: any, { ethers, getCh
 
   const chainId = parseInt(await getChainId()) as ChainId;
   const signer = (new ethers.Wallet(process.env.TRUSTEE_PK as string, ethers.provider as providers.Provider)) as any;
-  const wethMaker = (await ethers.getContract("WethMaker")).connect(signer) as WethMaker;
+  const wethMaker = (await ethers.getContract(maker)).connect(signer) as WethMaker;
   const weth9 = WETH9_ADDRESS[chainId].toLowerCase();
 
   const wethMakerSdk = new WethMakerSdk({
@@ -103,6 +103,6 @@ export const buyWeth = async function ({ gasPrice, nonce }: any, { ethers, getCh
     }
   }));
 
-  console.log((await wethMaker.buyWeth(tokens, amounts, minimumOuts, { nonce, gasLimit: 1e7, gasPrice })).hash);
+  console.log((await wethMaker.buyWeth(tokens, amounts, minimumOuts, { nonce, gasPrice, gasLimit })).hash);
 
 }
